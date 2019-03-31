@@ -1,0 +1,70 @@
+﻿@page "/displaycustomers"
+@using Customers.Common
+@using Kendo.Blazor.Components.Grid
+@using Kendo.Blazor.Components.TabStrip
+
+<h1>List Customers</h1>
+
+<div style="float:left; clear:both;">
+    <KendoTabStrip ref="tabStrip" TabPosition="KendoTabPosition.Top">
+        <KendoTab ref="@Tabs[(int) tabPosition.CustomerGrid]" Title="Customer List" Disabled="@tabEnable[(int) tabPosition.CustomerGrid]">
+            <KendoGrid Data="@customers" >
+                <KendoGridEvents>
+                    <EventsManager OnEdit="@((args) => DisplayDetail(args))"></EventsManager>
+                </KendoGridEvents>
+                <KendoGridColumns>
+                    <KendoGridCommandColumn>
+                        <KendoGridCommandButton Command="Edit" Icon="edit">Select</KendoGridCommandButton>
+                    </KendoGridCommandColumn>
+                    <KendoGridColumn Field="Id" Title="Customer Id" />
+                    <KendoGridColumn Editable="true" Field="FirstName" Title="First Name" />
+                    <KendoGridColumn Field="LastName" Title="Last Name" />
+                </KendoGridColumns>
+            </KendoGrid>
+        </KendoTab>
+
+        <KendoTab ref="@Tabs[(int) tabPosition.SelectedCustomer]" Title="Full Customer" Disabled="@tabEnable[(int) tabPosition.SelectedCustomer]">
+            <input type="text" bind="@currentCustomer.FirstName" />
+            <input type="text" bind="@currentCustomer.LastName" />
+        </KendoTab>
+    </KendoTabStrip>
+</div>
+
+@functions {
+    private IEnumerable<Customer> customers = null;
+
+    private bool[] tabEnable = new bool[] { false, true };
+    private Customer currentCustomer;
+    private KendoTabStrip tabStrip;
+    private ITab[] Tabs = new ITab[2];
+
+    enum tabPosition
+    {
+        CustomerGrid = 0,
+        SelectedCustomer = 1
+    }
+    object value;
+
+    protected override Task OnInitAsync()
+    {
+        GetCustomers();
+        return base.OnInitAsync();
+    }
+    
+    public void DisplayDetail(GridCommandEventArgs e)
+    {
+        currentCustomer = (Customer)e.Item;
+        e.IsCancelled = true;
+        tabEnable[(int) tabPosition.SelectedCustomer] = false;
+        tabStrip.SetActiveTab(Tabs[(int) tabPosition.SelectedCustomer]);
+        StateHasChanged();
+    }
+
+    public async void GetCustomers()
+    {
+        HttpClient hc = new HttpClient();
+        HttpResponseMessage rm = await hc.GetAsync("http://localhost:5001/customers");
+        customers = await rm.Content.ReadAsAsync<IEnumerable<Customer>>();
+        StateHasChanged();
+    }
+}
